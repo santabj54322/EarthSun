@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Arial, sans-serif;
-            /* 배경색을 바꾸고 싶으면 아래 그라디언트를 수정하세요 */
+            /* 배경색은 여기서 변경 가능 */
             background: linear-gradient(135deg, #0a0a0f 0%, #101427 100%);
             color: white;
             overflow: hidden;
@@ -25,8 +25,8 @@
             width: 100vw;
         }
         .canvas-container {
-            /* 천구가 더 잘 보이도록 배경을 진하게 */
-            background: rgba(10, 12, 24, 0.95);
+            /* 천구가 더 잘 보이도록 대비 높임 */
+            background: rgba(10, 12, 24, 0.97);
             border-radius: 10px;
             border: 1px solid rgba(100, 100, 150, 0.3);
             position: relative;
@@ -99,7 +99,7 @@
         .sphere-legend {
             position: absolute;
             bottom: 10px;
-            right: 10px;
+            left: 10px;
             background: rgba(0, 0, 0, 0.75);
             padding: 10px 12px;
             border-radius: 8px;
@@ -190,7 +190,7 @@
         let celestialSphereMesh, equatorRing, eclipticRing;
         let horizonRing, horizonGroup, horizonDisk;
         let sunPathMesh = null, sunMarker = null;
-        let skyGroup; // 적도/황도/태양/일주소권을 묶는 그룹(지평선은 고정)
+        let skyGroup; // 적도/황도/태양/일주 소권/천구(= 하늘) 묶음. 지평선은 별도 고정.
 
         // 위에서 본 뷰 초기화
         function initTopView() {
@@ -206,6 +206,7 @@
             topRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             topRenderer.setSize(width, height);
             topRenderer.setPixelRatio(window.devicePixelRatio);
+            // 필요시 캔버스 배경 직접 지정: topRenderer.setClearColor('#0b1020', 1);
             container.appendChild(topRenderer.domElement);
             
             const ambientLight = new THREE.AmbientLight(0x808080);
@@ -219,7 +220,7 @@
             
             // 지구 궤도
             const orbitGeometry = new THREE.RingGeometry(14.5, 15.5, 128);
-            const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff, opacity: 0.6, transparent: true, side: THREE.DoubleSide });
+            const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff, opacity: 0.7, transparent: true, side: THREE.DoubleSide });
             const orbitTop = new THREE.Mesh(orbitGeometry, orbitMaterial);
             orbitTop.rotation.x = -Math.PI / 2; // XZ 평면
             topScene.add(orbitTop);
@@ -248,35 +249,35 @@
             sphereRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             sphereRenderer.setSize(width, height);
             sphereRenderer.setPixelRatio(window.devicePixelRatio);
+            // 필요시 캔버스 배경 직접 지정: sphereRenderer.setClearColor('#0b1020', 1);
             container.appendChild(sphereRenderer.domElement);
             
-            // 하늘 요소 그룹(적도/황도/태양/일주소권/천구 메쉬)
+            // 하늘 요소 그룹(적도/황도/태양/일주 소권/천구 메쉬)
             skyGroup = new THREE.Object3D();
             sphereScene.add(skyGroup);
 
             // 천구(반투명)
             const R = 50;
             const sphereGeometry = new THREE.SphereGeometry(R, 64, 64);
-            // 조금 더 보이도록 opacity 약간 올림
             const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x0b1040, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
             celestialSphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
             skyGroup.add(celestialSphereMesh);
             
-            // 적도(Equator) - 세계 좌표에서 XY 평면, NCP는 +Z
+            // 적도(Equator) - 세계 좌표에서 XY 평면
             const equatorGeometry = new THREE.TorusGeometry(R, 0.2, 8, 128);
             const equatorMaterial = new THREE.MeshBasicMaterial({ color: 0xff4444 });
             equatorRing = new THREE.Mesh(equatorGeometry, equatorMaterial);
             equatorRing.rotation.set(0, 0, 0); // XY 평면
             skyGroup.add(equatorRing);
             
-            // 황도(Ecliptic) - 적도 기준 23.5° 기울임(γ점 +X)
+            // 황도(Ecliptic) - 적도 대비 23.5° 기울임(관측자와 무관)
             const eclipticGeometry = new THREE.TorusGeometry(R, 0.2, 8, 128);
             const eclipticMaterial = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
             eclipticRing = new THREE.Mesh(eclipticGeometry, eclipticMaterial);
-            eclipticRing.rotation.x = earthTilt; // X축 기준 기울임(관측자와 무관, 항상 23.5°)
+            eclipticRing.rotation.x = earthTilt; // X축 기울임
             skyGroup.add(eclipticRing);
             
-            // 지평선(Horizon) - 관측자 위도 φ에 따라 x 기울기만 적용(남중 정렬은 skyGroup z회전으로 처리)
+            // 지평선(Horizon) - "항상" 틸트 금지: XY 평면에 고정
             const horizonGeometry = new THREE.TorusGeometry(R, 0.2, 8, 128);
             const horizonMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
             horizonRing = new THREE.Mesh(horizonGeometry, horizonMaterial);
@@ -290,6 +291,11 @@
             horizonGroup.add(horizonRing);
             horizonGroup.add(horizonDisk);
             sphereScene.add(horizonGroup);
+
+            // 지평선은 절대 틸트하지 않도록 고정
+            horizonGroup.rotation.set(0, 0, 0);
+            horizonRing.rotation.set(0, 0, 0);
+            horizonDisk.rotation.set(0, 0, 0);
 
             // 카메라 드래그/줌(우클릭 회전, 휠 줌)
             let isDragging = false;
@@ -335,9 +341,10 @@
             const alpha = sunRA * Math.PI / 12;  // RA [rad]
             const lambda = alpha;                 // 4분점에서 α = λ
             
-            // 상단(탑) 뷰의 지구 위치(춘분점이 화면 아래로, 반시계 춘→하→추→동)
-            const earthAngle = lambda + Math.PI;
-            const thetaTop = earthAngle + Math.PI / 2; // 화면 아래(-Z)를 λ=0으로 정렬
+            // 위에서 본 뷰 지구 위치:
+            // 요구: 아래=춘분(0h), 오른쪽=하지(6h), 위=추분(12h), 왼쪽=동지(18h)
+            // => θTop = α − π/2 (xz 평면에서 z↑가 화면 위쪽)
+            const thetaTop = alpha - Math.PI / 2;
             const ex = 15 * Math.cos(thetaTop);
             const ez = 15 * Math.sin(thetaTop);
             if (earthTop) earthTop.position.set(ex, 0, ez);
@@ -351,24 +358,23 @@
         
         // 천구 업데이트 (제삼자 시점)
         function updateCelestialSphere(alpha, lambda) {
-            const latRad = observerLat * DEG;
             const epsilon = earthTilt;
             const R = 50;
 
             // 태양 적위 δ = asin(sin ε · sin λ)
             const declination = Math.asin(Math.sin(epsilon) * Math.sin(lambda));
 
-            // 지평선 기울기: 위도만 반영 (x = π/2 − φ)
+            // 지평선: 틸트/회전 모두 고정(요청사항)
             horizonGroup.rotation.set(0, 0, 0);
             horizonRing.rotation.set(0, 0, 0);
             horizonDisk.rotation.set(0, 0, 0);
-            horizonGroup.rotation.x = Math.PI / 2 - latRad;
-            // 남중(LST=RA) 정렬은 skyGroup의 z 회전으로 처리:
-            // 정합 보정: 기존 horizon z=α 대신 sky z=−α+π/2
+
+            // 남중(LST=RA) 정렬은 하늘(skyGroup)만 회전
+            // 보정 포함: skyGroup z = −α + π/2
             skyGroup.rotation.set(0, 0, 0);
             skyGroup.rotation.z = -alpha + Math.PI / 2;
 
-            // 태양의 일주 경로(적위 고정 소권)
+            // 태양의 일주 경로(적위 고정 소권) - 토러스(가시성 향상)
             if (sunPathMesh) {
                 skyGroup.remove(sunPathMesh);
                 sunPathMesh.geometry.dispose();
@@ -377,13 +383,13 @@
             }
             const rSmall = Math.max(0.1, R * Math.cos(declination)); // 소권 반지름
             const zOffset = R * Math.sin(declination);               // 소권 z 오프셋
-            const sunPathGeometry = new THREE.RingGeometry(rSmall - 0.25, rSmall + 0.25, 256);
-            const sunPathMaterial = new THREE.MeshBasicMaterial({ color: 0xffa500, opacity: 0.85, transparent: true, side: THREE.DoubleSide });
+            const sunPathGeometry = new THREE.TorusGeometry(rSmall, 0.2, 8, 256);
+            const sunPathMaterial = new THREE.MeshBasicMaterial({ color: 0xffa500 });
             sunPathMesh = new THREE.Mesh(sunPathGeometry, sunPathMaterial);
             sunPathMesh.position.set(0, 0, zOffset); // 적도와 평행한 평면에서 z로 이동
             skyGroup.add(sunPathMesh);
 
-            // 태양 위치(적경·적위 기준, skyGroup 안에서 배치)
+            // 태양 위치(적경·적위 기준, skyGroup 안)
             if (sunMarker) {
                 skyGroup.remove(sunMarker);
                 sunMarker.geometry.dispose();
@@ -408,7 +414,7 @@
         // 굴절/태양반지름 보정 없이 h0=0°, 원형 지구/천구 근사
         function calculateSunPosition(alpha, lambda) {
             const latRad = observerLat * DEG;
-            const decRad = Math.asin(Math.sin(earthTilt) * Math.sin(lambda)); // 정확식
+            const decRad = Math.asin(Math.sin(earthTilt) * Math.sin(lambda));
 
             // 남중 고도(근사)
             const noonAlt = 90 - Math.abs(observerLat - (decRad * RAD2DEG));
@@ -428,7 +434,6 @@
                 sunsetAz = "백야";
             } else {
                 const H0 = Math.acos(Math.max(-1, Math.min(1, cosH0))); // 0~π
-                // h=0에서
                 const cosA = Math.sin(decRad) / Math.max(1e-9, Math.cos(latRad));
                 const sinA_rise = Math.cos(decRad) * Math.sin(-H0);
                 const sinA_set  = Math.cos(decRad) * Math.sin( H0);
@@ -436,7 +441,6 @@
                 let Ar = Math.atan2(sinA_rise, cosA) * RAD2DEG;
                 let As = Math.atan2(sinA_set,  cosA) * RAD2DEG;
 
-                // 0~360 정규화
                 Ar = (Ar % 360 + 360) % 360;
                 As = (As % 360 + 360) % 360;
 
@@ -492,8 +496,3 @@
     </script>
 </body>
 </html>
-
-배경색 변경 방법
-- 전체 페이지 배경: CSS의 body { background: ... }를 원하는 색이나 그라디언트로 수정하세요.
-- 각 뷰 박스 배경: .canvas-container { background: rgba(...); }를 수정해 대비를 조정하세요.
-- 캔버스 자체 배경색을 쓰고 싶다면, renderer 생성 후 renderer.setClearColor('#0b1020', 1)처럼 설정할 수도 있습니다(지금은 alpha:true로 CSS 배경을 쓰도록 구성되어 있습니다).
