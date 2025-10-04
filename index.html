@@ -16,7 +16,7 @@
         }
         #container {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr; /* 세 칸 동일폭: 메인과 천구 동일 비율 */
+            grid-template-columns: 1fr 1fr 1fr; /* 동일 비율 */
             grid-template-rows: 1fr;
             gap: 10px;
             padding: 10px;
@@ -53,7 +53,6 @@
             display: flex;
             gap: 15px;
             align-items: center;
-            flex-wrap: wrap;
         }
         .control-group { display: flex; flex-direction: column; gap: 5px; }
         label { font-size: 12px; color: #aaa; }
@@ -63,7 +62,7 @@
             border: 1px solid #444;
             background: #222;
             color: white;
-            width: 160px;
+            width: 120px;
         }
         button {
             padding: 8px 20px;
@@ -83,7 +82,7 @@
             padding: 15px;
             border-radius: 10px;
             font-size: 14px;
-            max-width: 280px;
+            max-width: 250px;
             z-index: 100;
         }
         .info-item {
@@ -93,64 +92,48 @@
         }
         .info-label { color: #8a8a8a; font-size: 12px; }
         .info-value { color: #fff; font-weight: bold; }
+
         /* 천구 범례 */
-        .legend {
+        .sphere-legend {
             position: absolute;
             bottom: 10px;
             left: 10px;
-            background: rgba(10, 10, 20, 0.9);
-            border: 1px solid rgba(100, 100, 150, 0.4);
+            background: rgba(0, 0, 0, 0.75);
+            padding: 10px 12px;
             border-radius: 8px;
-            padding: 10px;
+            border: 1px solid rgba(100,100,150,0.35);
             font-size: 12px;
-            z-index: 20;
-            max-width: 260px;
             line-height: 1.4;
+            z-index: 20;
+            max-width: 60%;
         }
-        .legend-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 3px 0;
-        }
-        .legend-color {
-            width: 12px; height: 12px; border-radius: 2px;
-        }
-        .legend-note {
-            margin-top: 6px;
-            color: #aaa;
-        }
-        .badge {
-            display: inline-block;
-            padding: 1px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.15);
-            margin-left: 6px;
-            color: #ddd;
-        }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+        .legend-swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+        .swatch-equator { background: #ff4444; }
+        .swatch-ecliptic { background: #ffdd00; }
+        .swatch-horizon { background: #00ff88; }
+        .swatch-sunpath { background: #ffa500; }
+        .swatch-sun { background: #ffff00; }
+        .legend-note { color: #9aa; margin-top: 6px; }
     </style>
 </head>
 <body>
     <div id="container">
         <div class="canvas-container" id="topView">
-            <div class="canvas-title">태양-지구 (황도면 위에서 본 모습)</div>
+            <div class="canvas-title">태양-지구 (위에서 본 모습)</div>
         </div>
         <div class="canvas-container" id="mainView">
             <div class="canvas-title">태양계 공전 (3D)</div>
         </div>
         <div class="canvas-container" id="celestialSphere">
             <div class="canvas-title">천구 (제삼자 시점)</div>
-            <div class="legend">
-                <div class="legend-row"><div class="legend-color" style="background:#ff4444"></div> 적도(Equator)</div>
-                <div class="legend-row"><div class="legend-color" style="background:#ffdd00"></div> 황도(Ecliptic) <span class="badge">기울기 23.44°</span></div>
-                <div class="legend-row"><div class="legend-color" style="background:#00ff88"></div> 지평선(Horizon) 테두리</div>
-                <div class="legend-row"><div class="legend-color" style="background:#00aa66"></div> 지평면(채움)</div>
-                <div class="legend-row"><div class="legend-color" style="background:#ffa500"></div> 태양의 일주 경로(고정 적위의 소권)</div>
-                <div class="legend-row"><div class="legend-color" style="background:#ffff00"></div> 태양 위치(Sun)</div>
-                <div class="legend-row"><div class="legend-color" style="background:#8888ff"></div> γ점(춘분점, RA=0h) 마커</div>
-                <div class="legend-note">좌표계: 적도는 XY 평면, 북극은 +Z. RA는 +X(γ점)에서 +Y 방향으로 증가.</div>
+            <div class="sphere-legend">
+                <div class="legend-item"><span class="legend-swatch swatch-equator"></span>적도(Equator)</div>
+                <div class="legend-item"><span class="legend-swatch swatch-ecliptic"></span>황도(Ecliptic)</div>
+                <div class="legend-item"><span class="legend-swatch swatch-horizon"></span>지평선(Horizon) 디스크</div>
+                <div class="legend-item"><span class="legend-swatch swatch-sunpath"></span>태양의 일주 소권(해당 적위)</div>
+                <div class="legend-item"><span class="legend-swatch swatch-sun"></span>태양 위치(적경·적위)</div>
+                <div class="legend-note">참고: 장면은 남중 시각으로 정렬(LST = RA). 날짜/시간 계산 없음.</div>
             </div>
         </div>
     </div>
@@ -166,18 +149,14 @@
             </select>
         </div>
         <div class="control-group">
-            <label>관측자 위도 φ (°)</label>
+            <label>관측자 위도</label>
             <input type="number" id="latitude" value="37.5" min="-90" max="90" step="0.1">
         </div>
         <div class="control-group">
-            <label>관측자 경도 λ (°, 동경=+)</label>
+            <label>관측자 경도</label>
             <input type="number" id="longitude" value="127" min="-180" max="180" step="0.1">
         </div>
-        <div class="control-group">
-            <label>날짜/시간 (현지)</label>
-            <input type="datetime-local" id="datetimeLocal">
-        </div>
-        <button id="applyBtn">적용</button>
+        <button onclick="updateSimulation()">적용</button>
     </div>
     
     <div id="info">
@@ -190,710 +169,409 @@
             <div class="info-value" id="sunsetAzimuth">-</div>
         </div>
         <div class="info-item">
-            <div class="info-label">자오(상중) 고도</div>
+            <div class="info-label">남중 고도</div>
             <div class="info-value" id="noonAltitude">-</div>
         </div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // 전역 변수 및 상수
+        // 전역 변수
         let mainScene, mainCamera, mainRenderer;
         let topScene, topCamera, topRenderer;
         let sphereScene, sphereCamera, sphereRenderer;
-        let earth, sun, earthOrbit, eclipticGroup, earthNode;
-        let earthTop, eclipticGroupTop;
+        let earth, sun, earthOrbit, earthTop;
         let observerLat = 37.5, observerLon = 127;
-        let sunRAh = 0; // RA in hours
-        let localDate = new Date();
-        const earthTilt = 23.44 * Math.PI / 180;
+        let sunRA = 0; // 시간 단위 (h)
+
         const DEG = Math.PI / 180;
         const RAD2DEG = 180 / Math.PI;
-        const AU_VIS = 15;     // 스케일용 지구-태양 거리
-        const R_CEL = 50;      // 천구 반지름
-        const H0 = -0.833 * DEG; // 일출/일몰 표준 고도(굴절+태양반지름)
+        const earthTilt = 23.5 * DEG; // 요청대로 23.5°
 
-        // 천구 뷰 오브젝트
-        let celestialSphereMesh, equatorRing, eclipticRing, horizonRing, horizonDisc, horizonGroup;
-        let sunPathMesh = null, sunMarker = null, gammaMarker = null;
+        // 천구 뷰 오브젝트 참조
+        let celestialSphereMesh, equatorRing, eclipticRing, horizonRing, horizonGroup, horizonDisk;
+        let sunPathMesh = null, sunMarker = null;
 
-        // 유틸
-        function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-        function normRad(a) { a = a % (2*Math.PI); return (a < 0) ? a + 2*Math.PI : a; }
-        function toRad(deg) { return deg * DEG; }
-        function toDeg(rad) { return rad * RAD2DEG; }
-
-        function rotateX(v, ang){
-            const c = Math.cos(ang), s = Math.sin(ang);
-            return new THREE.Vector3(v.x, v.y*c - v.z*s, v.y*s + v.z*c);
-        }
-
-        // JD, GMST, LST
-        function dateTimeLocalValue() {
-            const input = document.getElementById('datetimeLocal');
-            if (input && input.value) {
-                // input.value는 "YYYY-MM-DDTHH:MM"
-                return new Date(input.value);
-            }
-            return new Date();
-        }
-        function toJulianDate(date) {
-            // date: JS Date (local or UTC). Use UTC components
-            const t = date.getTime(); // ms since epoch UTC
-            const JD_UNIX_EPOCH = 2440587.5; // JD at 1970-01-01 00:00:00 UTC
-            return t / 86400000 + JD_UNIX_EPOCH;
-        }
-        function gmstRad(date) {
-            const JD = toJulianDate(date);
-            const T = (JD - 2451545.0) / 36525.0;
-            let GMST = 280.46061837 + 360.98564736629 * (JD - 2451545.0) + 0.000387933 * T*T - (T*T*T)/38710000.0;
-            GMST = (GMST % 360 + 360) % 360;
-            return GMST * DEG;
-        }
-        function lstRad(date, lonDeg) {
-            // LST = GMST + longitude (동경+)
-            return normRad(gmstRad(date) + toRad(lonDeg));
-        }
-
-        // α(적경) -> λ(황경) 변환 (β=0 가정)
-        function alphaToLambda(alphaRad, eps) {
-            // λ = atan2( sin α / cos ε, cos α )
-            return normRad(Math.atan2(Math.sin(alphaRad) / Math.cos(eps), Math.cos(alphaRad)));
-        }
-
-        // 초기화: 메인 뷰
+        // 메인 뷰 초기화
         function initMainView() {
             const container = document.getElementById('mainView');
             const width = container.clientWidth;
             const height = container.clientHeight;
-
+            
             mainScene = new THREE.Scene();
-            mainCamera = new THREE.PerspectiveCamera(45, width/height, 0.1, 2000);
-            mainCamera.position.set(40, 25, 40);
-            mainCamera.lookAt(0,0,0);
-
+            mainCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            mainCamera.position.set(30, 20, 30);
+            mainCamera.lookAt(0, 0, 0);
+            
             mainRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             mainRenderer.setSize(width, height);
             mainRenderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(mainRenderer.domElement);
-
+            
             const ambientLight = new THREE.AmbientLight(0x404040);
             mainScene.add(ambientLight);
-
-            const sunLight = new THREE.PointLight(0xffffaa, 2, 500);
-            sunLight.position.set(0,0,0);
+            
+            const sunLight = new THREE.PointLight(0xffff00, 2, 100);
+            sunLight.position.set(0, 0, 0);
             mainScene.add(sunLight);
-
+            
             // 태양
             const sunGeometry = new THREE.SphereGeometry(2, 32, 32);
-            const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, emissive: 0xffd000, emissiveIntensity: 0.8 });
+            const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 1 });
             sun = new THREE.Mesh(sunGeometry, sunMaterial);
             mainScene.add(sun);
-
-            // 황도면 그룹
-            eclipticGroup = new THREE.Object3D();
-            eclipticGroup.rotation.x = earthTilt; // 황도면을 적도에 대해 기울임
-            mainScene.add(eclipticGroup);
-
-            // 지구 공전 궤도 (황도면에 있음)
-            const orbitGeometry = new THREE.RingGeometry(AU_VIS - 0.5, AU_VIS + 0.5, 128);
-            const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff, side: THREE.DoubleSide, opacity: 0.35, transparent: true });
+            
+            // 지구 공전 궤도 (XZ 평면)
+            const orbitGeometry = new THREE.RingGeometry(14.9, 15.1, 128);
+            const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff, side: THREE.DoubleSide, opacity: 0.3, transparent: true });
             earthOrbit = new THREE.Mesh(orbitGeometry, orbitMaterial);
-            // 토러스 기본 평면은 XY, eclipticGroup에 의해 황도면으로 기울어짐
-            eclipticGroup.add(earthOrbit);
-
-            // 지구 노드(위상만 위치 이동), 지구 자체는 역회전으로 축을 +Z로 유지
-            earthNode = new THREE.Object3D();
-            eclipticGroup.add(earthNode);
-
+            earthOrbit.rotation.x = -Math.PI / 2; // XY -> XZ
+            mainScene.add(earthOrbit);
+            
+            // 지구
             const earthGeometry = new THREE.SphereGeometry(1, 32, 32);
-            const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x3366ff, shininess: 10 });
+            const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x2233ff });
             earth = new THREE.Mesh(earthGeometry, earthMaterial);
-            // eclipticGroup이 x로 +ε 회전하므로 지구 자체는 -ε로 되돌려 자전축을 +Z로
-            earth.rotation.x = -earthTilt;
 
-            // 지구 자전축(세계 +Z 방향)
-            const axisGeometry = new THREE.CylinderGeometry(0.05, 0.05, 3.5);
-            const axisMaterial = new THREE.MeshBasicMaterial({ color: 0xff4444 });
+            // 지구 자전축 (Y축 방향 기본, X축으로 23.5° 기울임)
+            const axisGeometry = new THREE.CylinderGeometry(0.05, 0.05, 4);
+            const axisMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
             const axis = new THREE.Mesh(axisGeometry, axisMaterial);
-            axis.rotation.x = Math.PI / 2; // 실린더(Y축) -> Z축
+            axis.position.set(0, 0, 0);
+            // Cylinder는 기본이 Y축 정렬. +Y에서 +Z 방향으로 23.5° 기울이려면 X축으로 회전.
+            axis.rotation.x = earthTilt;
             earth.add(axis);
-
-            earthNode.add(earth);
-
-            // 마우스 컨트롤(우클릭 궤도 회전)
+            
+            mainScene.add(earth);
+            
+            // 마우스 컨트롤(우클릭 드래그로 카메라 궤도)
             let isDragging = false;
-            let prev = {x:0,y:0};
-            container.addEventListener('mousedown', (e)=>{
-                if (e.button === 2) { isDragging = true; prev = {x:e.clientX, y:e.clientY}; }
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            container.addEventListener('mousedown', (e) => {
+                if (e.button === 2) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                }
             });
-            container.addEventListener('mousemove', (e)=>{
-                if (!isDragging) return;
-                const dx = e.clientX - prev.x;
-                const dy = e.clientY - prev.y;
-                const sph = new THREE.Spherical().setFromVector3(mainCamera.position.clone());
-                sph.theta -= dx * 0.01;
-                sph.phi = clamp(sph.phi + dy * 0.01, 0.1, Math.PI - 0.1);
-                mainCamera.position.setFromSpherical(sph);
-                mainCamera.lookAt(0,0,0);
-                prev = {x:e.clientX, y:e.clientY};
+            container.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    
+                    const spherical = new THREE.Spherical();
+                    spherical.setFromVector3(mainCamera.position.clone());
+                    spherical.theta -= deltaX * 0.01;
+                    spherical.phi += deltaY * 0.01;
+                    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                    
+                    mainCamera.position.setFromSpherical(spherical);
+                    mainCamera.lookAt(0, 0, 0);
+                    
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                }
             });
-            container.addEventListener('mouseup', ()=>{ isDragging=false; });
-            container.addEventListener('contextmenu', e=>e.preventDefault());
+            container.addEventListener('mouseup', () => { isDragging = false; });
+            container.addEventListener('contextmenu', (e) => e.preventDefault());
         }
-
-        // 초기화: 위에서 본 뷰(황도면 법선 방향에서 내려다봄)
+        
+        // 위에서 본 뷰 초기화
         function initTopView() {
             const container = document.getElementById('topView');
             const width = container.clientWidth;
             const height = container.clientHeight;
-
+            
             topScene = new THREE.Scene();
-            const aspect = width/height;
-            topCamera = new THREE.OrthographicCamera(-22, 22, 22/aspect, -22/aspect, 0.1, 1000);
-
+            topCamera = new THREE.OrthographicCamera(-20, 20, 20 * height/width, -20 * height/width, 0.1, 1000);
+            topCamera.position.set(0, 50, 0);
+            topCamera.lookAt(0, 0, 0);
+            
             topRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             topRenderer.setSize(width, height);
             topRenderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(topRenderer.domElement);
-
+            
             const ambientLight = new THREE.AmbientLight(0x808080);
             topScene.add(ambientLight);
-
-            // 황도면 그룹 (메인과 동일한 기울기)
-            eclipticGroupTop = new THREE.Object3D();
-            eclipticGroupTop.rotation.x = earthTilt;
-            topScene.add(eclipticGroupTop);
-
-            // 태양
+            
+            // 태양(중앙)
             const sunGeometry = new THREE.SphereGeometry(2, 32, 32);
             const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
             const sunTop = new THREE.Mesh(sunGeometry, sunMaterial);
             topScene.add(sunTop);
-
-            // 지구 궤도(황도면)
-            const orbitGeometry = new THREE.RingGeometry(AU_VIS - 0.7, AU_VIS + 0.7, 128);
-            const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff, opacity: 0.5, transparent: true, side: THREE.DoubleSide });
+            
+            // 지구 궤도
+            const orbitGeometry = new THREE.RingGeometry(14.5, 15.5, 128);
+            const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0x4444ff, opacity: 0.5, transparent: true });
             const orbitTop = new THREE.Mesh(orbitGeometry, orbitMaterial);
-            eclipticGroupTop.add(orbitTop);
+            orbitTop.rotation.x = -Math.PI / 2;
+            topScene.add(orbitTop);
 
+            // 지구(상단 뷰)
             const earthGeometry = new THREE.SphereGeometry(1, 16, 16);
             const earthMaterial = new THREE.MeshBasicMaterial({ color: 0x2244ff });
             earthTop = new THREE.Mesh(earthGeometry, earthMaterial);
-            eclipticGroupTop.add(earthTop);
-
-            // 카메라를 황도면 법선 방향에서 배치
-            updateTopCamera();
+            topScene.add(earthTop);
         }
-
-        function updateTopCamera() {
-            // 황도면 법선: R_x(ε) * (0,0,1) = (0, sinε, cosε)
-            const n = new THREE.Vector3(0, Math.sin(earthTilt), Math.cos(earthTilt));
-            topCamera.position.copy(n.clone().multiplyScalar(60));
-            topCamera.up.set(0,0,1); // 월드 북쪽을 위로
-            topCamera.lookAt(0,0,0);
-            topCamera.updateProjectionMatrix();
-        }
-
-        // 초기화: 천구(제삼자)
+        
+        // 천구 뷰 초기화 (제삼자 시점)
         function initCelestialSphere() {
             const container = document.getElementById('celestialSphere');
             const width = container.clientWidth;
             const height = container.clientHeight;
-
+            
             sphereScene = new THREE.Scene();
-            sphereCamera = new THREE.PerspectiveCamera(60, width/height, 0.1, 5000);
-            let camSph = new THREE.Spherical(140, Math.PI/3, Math.PI/4);
-            sphereCamera.position.setFromSpherical(camSph);
-            sphereCamera.lookAt(0,0,0);
+            sphereCamera = new THREE.PerspectiveCamera(60, width / height, 0.1, 2000);
 
+            // 제삼자 시점 카메라 위치(구 바깥)
+            let camSpherical = new THREE.Spherical(140, Math.PI/3, Math.PI/4);
+            sphereCamera.position.setFromSpherical(camSpherical);
+            sphereCamera.lookAt(0, 0, 0);
+            
             sphereRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             sphereRenderer.setSize(width, height);
             sphereRenderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(sphereRenderer.domElement);
-
-            // 천구
-            const sphereGeometry = new THREE.SphereGeometry(R_CEL, 64, 64);
+            
+            // 천구(반투명)
+            const R = 50;
+            const sphereGeometry = new THREE.SphereGeometry(R, 64, 64);
             const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x000033, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
             celestialSphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
             sphereScene.add(celestialSphereMesh);
-
-            // 적도(Equator) - XY 평면
-            const equatorGeometry = new THREE.TorusGeometry(R_CEL, 0.2, 8, 256);
+            
+            // 적도(Equator) - 세계 좌표에서 XY 평면, NCP는 +Z
+            const equatorGeometry = new THREE.TorusGeometry(R, 0.2, 8, 128);
             const equatorMaterial = new THREE.MeshBasicMaterial({ color: 0xff4444 });
             equatorRing = new THREE.Mesh(equatorGeometry, equatorMaterial);
+            equatorRing.rotation.set(0, 0, 0); // XY 평면
             sphereScene.add(equatorRing);
-
-            // 황도(Ecliptic) - X축 기준 +ε 기울기(γ점이 +X)
-            const eclipticGeometry = new THREE.TorusGeometry(R_CEL, 0.2, 8, 256);
+            
+            // 황도(Ecliptic) - 적도 기준 23.5° 기울임(γ점 +X)
+            const eclipticGeometry = new THREE.TorusGeometry(R, 0.2, 8, 128);
             const eclipticMaterial = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
             eclipticRing = new THREE.Mesh(eclipticGeometry, eclipticMaterial);
-            eclipticRing.rotation.x = earthTilt;
+            eclipticRing.rotation.x = earthTilt; // X축 기준 기울임
             sphereScene.add(eclipticRing);
+            
+            // 지평선(Horizon) - 관측자 위도 φ에 따라 기울이고, LST에 따라 Z축 회전
+            const horizonGeometry = new THREE.TorusGeometry(R, 0.2, 8, 128);
+            const horizonMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+            horizonRing = new THREE.Mesh(horizonGeometry, horizonMaterial);
 
-            // γ점(춘분점) 마커(+X 방향)
-            const gammaGeom = new THREE.SphereGeometry(1.4, 16, 16);
-            const gammaMat = new THREE.MeshBasicMaterial({ color: 0x8888ff });
-            gammaMarker = new THREE.Mesh(gammaGeom, gammaMat);
-            gammaMarker.position.set(R_CEL, 0, 0);
-            sphereScene.add(gammaMarker);
+            // 지평선 디스크(원판) 추가
+            const horizonDiskGeometry = new THREE.CircleGeometry(R - 0.1, 128);
+            const horizonDiskMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff88, opacity: 0.12, transparent: true, side: THREE.DoubleSide });
+            horizonDisk = new THREE.Mesh(horizonDiskGeometry, horizonDiskMaterial);
 
-            // 지평선(Horizon) 그룹: 원판 + 테두리
             horizonGroup = new THREE.Object3D();
+            horizonGroup.add(horizonRing);
+            horizonGroup.add(horizonDisk); // 동일 평면에서 채워진 원판
             sphereScene.add(horizonGroup);
 
-            const horizonRingGeometry = new THREE.TorusGeometry(R_CEL, 0.22, 8, 256);
-            const horizonRingMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
-            horizonRing = new THREE.Mesh(horizonRingGeometry, horizonRingMaterial);
-            horizonGroup.add(horizonRing);
-
-            const horizonDiscGeometry = new THREE.CircleGeometry(R_CEL, 256);
-            const horizonDiscMaterial = new THREE.MeshBasicMaterial({ color: 0x00aa66, opacity: 0.15, transparent: true, side: THREE.DoubleSide });
-            horizonDisc = new THREE.Mesh(horizonDiscGeometry, horizonDiscMaterial);
-            horizonGroup.add(horizonDisc);
-
-            // 카메라 조작(우클릭, 휠)
+            // 카메라 드래그/줌(우클릭 회전, 휠 줌)
             let isDragging = false;
-            let prev = {x:0,y:0};
-            container.addEventListener('mousedown', (e)=>{
-                if (e.button === 2) { isDragging = true; prev = {x:e.clientX, y:e.clientY}; }
-            });
-            container.addEventListener('mousemove', (e)=>{
-                if (!isDragging) return;
-                const dx = e.clientX - prev.x;
-                const dy = e.clientY - prev.y;
-                camSph.setFromVector3(sphereCamera.position.clone());
-                camSph.theta -= dx * 0.01;
-                camSph.phi = clamp(camSph.phi + dy * 0.01, 0.05, Math.PI - 0.05);
-                sphereCamera.position.setFromSpherical(camSph);
-                sphereCamera.lookAt(0,0,0);
-                prev = {x:e.clientX, y:e.clientY};
-            });
-            container.addEventListener('mouseup', ()=>{ isDragging=false; });
-            container.addEventListener('wheel', (e)=>{
-                camSph.setFromVector3(sphereCamera.position.clone());
-                camSph.radius *= (e.deltaY > 0 ? 1.05 : 0.95);
-                camSph.radius = clamp(camSph.radius, 70, 400);
-                sphereCamera.position.setFromSpherical(camSph);
-                sphereCamera.lookAt(0,0,0);
-            });
-            container.addEventListener('contextmenu', e=>e.preventDefault());
-        }
+            let previousMousePosition = { x: 0, y: 0 };
 
-        // 업데이트
+            container.addEventListener('mousedown', (e) => {
+                if (e.button === 2) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                }
+            });
+            container.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    camSpherical.setFromVector3(sphereCamera.position.clone());
+                    camSpherical.theta -= deltaX * 0.01;
+                    camSpherical.phi += deltaY * 0.01;
+                    camSpherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, camSpherical.phi));
+                    sphereCamera.position.setFromSpherical(camSpherical);
+                    sphereCamera.lookAt(0, 0, 0);
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                }
+            });
+            container.addEventListener('mouseup', () => { isDragging = false; });
+            container.addEventListener('wheel', (e) => {
+                camSpherical.setFromVector3(sphereCamera.position.clone());
+                camSpherical.radius *= (e.deltaY > 0 ? 1.05 : 0.95);
+                camSpherical.radius = Math.max(70, Math.min(400, camSpherical.radius));
+                sphereCamera.position.setFromSpherical(camSpherical);
+                sphereCamera.lookAt(0, 0, 0);
+            });
+            container.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+        
+        // 시뮬레이션 업데이트
         function updateSimulation() {
-            sunRAh = parseFloat(document.getElementById('rightAscension').value);
+            sunRA = parseFloat(document.getElementById('rightAscension').value);
             observerLat = parseFloat(document.getElementById('latitude').value);
             observerLon = parseFloat(document.getElementById('longitude').value);
-            localDate = dateTimeLocalValue();
+            
+            // 선택된 RA는 (춘분/하지/추분/동지에서) 태양 황경 λ와 동일하게 간주
+            const alpha = sunRA * Math.PI / 12;  // RA [rad]
+            const lambda = alpha;                 // 4분점에서 α = λ
+            
+            // 지구 위치: 태양과 반대편 (λ_E = λ + π), 공전면은 XZ
+            const earthAngle = lambda + Math.PI;
+            const ex = 15 * Math.cos(earthAngle);
+            const ez = 15 * Math.sin(earthAngle);
+            earth.position.set(ex, 0, ez);
 
-            // RA -> λ 변환 (ε=23.44°)
-            const alpha = sunRAh * 15 * DEG; // h -> deg -> rad
-            const eps = earthTilt;
-            const lambda = alphaToLambda(alpha, eps); // 태양 황경
-            const lambdaEarth = normRad(lambda + Math.PI); // 지구 헬리오센트릭 황경
-
-            // 메인/탑: 지구 위치 (황도면 좌표계 XY에서 배치, 그룹 회전으로 세계에 투영)
-            const ex = AU_VIS * Math.cos(lambdaEarth);
-            const ey = AU_VIS * Math.sin(lambdaEarth);
-
-            // earthNode는 eclipticGroup의 XY 평면에서 이동
-            earthNode.position.set(ex, ey, 0);
-            if (earthTop) earthTop.position.set(ex, ey, 0);
-
-            // 탑뷰 카메라 업데이트(황도면 법선에서 본다)
-            updateTopCamera();
-
-            // 천구: 태양 적위 δ, 위치, 일주 경로
-            updateCelestialSphere(alpha, eps);
-
-            // 일출/일몰/자오 고도 계산
-            calculateSunInfo(alpha, eps);
+            // 상단(탑) 뷰의 지구 위치도 갱신
+            if (earthTop) earthTop.position.set(ex, 0, ez);
+            
+            // 천구 업데이트
+            updateCelestialSphere(alpha, lambda);
+            
+            // 태양 정보 계산
+            calculateSunPosition(alpha, lambda);
         }
+        
+        // 천구 업데이트 (제삼자 시점)
+        function updateCelestialSphere(alpha, lambda) {
+            const latRad = observerLat * DEG;
+            const epsilon = earthTilt;
+            const R = 50;
 
-        function updateCelestialSphere(alpha, eps) {
-            // RA -> λ -> δ
-            const lambda = alphaToLambda(alpha, eps);
-            const dec = Math.asin(Math.sin(eps) * Math.sin(lambda)); // δ
+            // 태양 적위 δ = asin(sin ε · sin λ)
+            const declination = Math.asin(Math.sin(epsilon) * Math.sin(lambda));
 
-            // 태양 마커
-            if (sunMarker) {
-                sphereScene.remove(sunMarker);
-                sunMarker.geometry.dispose();
-                sunMarker.material.dispose();
-            }
-            const sunGeom = new THREE.SphereGeometry(2, 24, 24);
-            const sunMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-            sunMarker = new THREE.Mesh(sunGeom, sunMat);
-            const x = R_CEL * Math.cos(dec) * Math.cos(alpha);
-            const y = R_CEL * Math.cos(dec) * Math.sin(alpha);
-            const z = R_CEL * Math.sin(dec);
-            sunMarker.position.set(x, y, z);
-            sphereScene.add(sunMarker);
+            // 지평선 기울기: 회전 x = π/2 − φ (법선이 (0, cosφ, sinφ))
+            horizonGroup.rotation.set(0, 0, 0);
+            horizonRing.rotation.set(0, 0, 0);
+            horizonDisk.rotation.set(0, 0, 0);
+            horizonGroup.rotation.x = Math.PI / 2 - latRad;
 
-            // 태양 일주 경로(적위 고정 소권: 적도 평면과 평행, z=R*sinδ)
+            // LST = α로 맞춰 남중 시각 장면(태양이 자오선 위)으로 보이게 Z축 회전
+            horizonGroup.rotation.z = alpha;
+
+            // 태양의 일주 경로(적위 고정 소권)
             if (sunPathMesh) {
                 sphereScene.remove(sunPathMesh);
                 sunPathMesh.geometry.dispose();
                 sunPathMesh.material.dispose();
+                sunPathMesh = null;
             }
-            const rSmall = Math.max(0.1, R_CEL * Math.cos(dec));
-            const zOffset = R_CEL * Math.sin(dec);
+            const rSmall = Math.max(0.1, R * Math.cos(declination)); // 소권 반지름
+            const zOffset = R * Math.sin(declination);               // 소권 z 오프셋
             const sunPathGeometry = new THREE.RingGeometry(rSmall - 0.25, rSmall + 0.25, 256);
             const sunPathMaterial = new THREE.MeshBasicMaterial({ color: 0xffa500, opacity: 0.8, transparent: true, side: THREE.DoubleSide });
             sunPathMesh = new THREE.Mesh(sunPathGeometry, sunPathMaterial);
-            sunPathMesh.position.set(0, 0, zOffset);
+            sunPathMesh.position.set(0, 0, zOffset); // 적도와 평행한 평면에서 z로 이동
             sphereScene.add(sunPathMesh);
 
-            // 지평선 방향: 위도/경도/시간 -> 항성시 LST
-            const phi = observerLat * DEG;
-            const LST = lstRad(localDate, observerLon);
-
-            // 천구(적도 좌표계)에서 천정(zenith) 단위벡터
-            const zenith = new THREE.Vector3(
-                Math.cos(phi) * Math.cos(LST),
-                Math.cos(phi) * Math.sin(LST),
-                Math.sin(phi)
-            ).normalize();
-
-            // 1) +Z(적북) -> zenith 로 회전
-            const q1 = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), zenith);
-
-            // 2) 수평면에서 "북(az=0)" 방향 정렬: 적북(NCP)을 수평선에 사영한 방향을 '북'으로
-            const NCP = new THREE.Vector3(0,0,1);
-            const tmp = new THREE.Vector3().crossVectors(NCP, zenith); // NCP×Zenith
-            let northDir;
-            if (tmp.length() < 1e-6) {
-                // 극지: NCP ≈ Zenith, 북방위 정의 모호 -> 추가 회전 불필요
-                northDir = new THREE.Vector3(0,1,0).applyQuaternion(q1).normalize();
-            } else {
-                northDir = new THREE.Vector3().crossVectors(zenith, tmp).normalize();
+            // 태양 위치(적경·적위 기준)
+            if (sunMarker) {
+                sphereScene.remove(sunMarker);
+                sunMarker.geometry.dispose();
+                sunMarker.material.dispose();
+                sunMarker = null;
             }
-            // 현재 q1적용 후 로컬 +Y가 어디를 가리키는지
-            const yAfterQ1 = new THREE.Vector3(0,1,0).applyQuaternion(q1).normalize();
-            // zenith 축 주위에서 yAfterQ1 -> northDir로의 서명각
-            const angle2 = Math.atan2(
-                new THREE.Vector3().crossVectors(yAfterQ1, northDir).dot(zenith),
-                yAfterQ1.dot(northDir)
-            );
-            const q2 = new THREE.Quaternion().setFromAxisAngle(zenith, angle2);
+            const sunGeom = new THREE.SphereGeometry(2, 24, 24);
+            const sunMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            sunMarker = new THREE.Mesh(sunGeom, sunMat);
+            const x = R * Math.cos(declination) * Math.cos(alpha);
+            const y = R * Math.cos(declination) * Math.sin(alpha);
+            const z = R * Math.sin(declination);
+            sunMarker.position.set(x, y, z);
+            sphereScene.add(sunMarker);
 
-            horizonGroup.quaternion.copy(q2.multiply(q1));
-            // 디스크는 XY 평면 메쉬이므로, 회전 후 수평면에 정확히 놓임
+            // 적도/황도
+            equatorRing.rotation.set(0, 0, 0);
+            eclipticRing.rotation.set(earthTilt, 0, 0);
         }
+        
+        // 태양 위치 관련 값(남중 고도, 일출/일몰 방위각) 계산
+        // 근사 유지: 굴절/태양반지름 보정 없이 h0=0°, 원형 지구/천구
+        function calculateSunPosition(alpha, lambda) {
+            const latRad = observerLat * DEG;
+            const decRad = Math.asin(Math.sin(earthTilt) * Math.sin(lambda)); // 정확식
 
-        function calculateSunInfo(alpha, eps) {
-            // δ 계산
-            const lambda = alphaToLambda(alpha, eps);
-            const dec = Math.asin(Math.sin(eps) * Math.sin(lambda));
-            const phi = observerLat * DEG;
+            // 남중(상중) 고도(근사)
+            const noonAlt = 90 - Math.abs(observerLat - (decRad * RAD2DEG));
 
-            // 자오(상중) 고도: h = asin( sinφ sinδ + cosφ cosδ )
-            const h_transit = Math.asin(Math.sin(phi)*Math.sin(dec) + Math.cos(phi)*Math.cos(dec)) * RAD2DEG;
-
-            // 일출/일몰
-            const sinH0 = Math.sin(H0);
-            const sinPhi = Math.sin(phi), cosPhi = Math.cos(phi);
-            const sinDec = Math.sin(dec), cosDec = Math.cos(dec);
+            // 일출/일몰 시간각(H0) 및 방위각(근사, h0=0)
+            const tanLat = Math.tan(latRad);
+            const tanDec = Math.tan(decRad);
+            const cosH0 = -tanLat * tanDec;
 
             let sunriseAz = "-", sunsetAz = "-";
 
-            // cosH0 = (sin h0 − sinφ sinδ)/(cosφ cosδ)
-            let cosH0 = (sinH0 - sinPhi * sinDec) / (cosPhi * cosDec);
             if (cosH0 > 1) {
-                // 항상 지평선 아래(극야)
                 sunriseAz = "극야";
-                sunsetAz  = "극야";
+                sunsetAz = "극야";
             } else if (cosH0 < -1) {
-                // 항상 지평선 위(백야)
                 sunriseAz = "백야";
-                sunsetAz  = "백야";
+                sunsetAz = "백야";
             } else {
-                cosH0 = clamp(cosH0, -1, 1);
-                const H0 = Math.acos(cosH0);
+                const H0 = Math.acos(cosH0); // 0~π
+                // h=0일 때 방위각 근사: sinA = cosδ sinH, cosA = sinδ / cosφ
+                const denom = Math.max(1e-9, Math.cos(latRad));
+                const cosA_base = Math.sin(decRad) / denom;
 
-                // 방위각: sinA = cosδ sinH / cosh, cosA = (sinδ − sinφ sinh)/(cosφ cosh)
-                const cosh0 = Math.cos(H0 ? H0 : 0); // H0는 절댓값으로만 쓰이므로 cosh0≈cos(0)=1에 가깝지만 유지
-                const cosA_common = (sinDec - sinPhi * Math.sin(H0 ? H0*0 + H0/H0*H0 : 0 + 0) /*0*/ - sinPhi * Math.sin(H0 ? 0 : 0) - sinPhi*Math.sin(H0?0:0)); // dummy to keep shape
+                // 일출(H<0), 일몰(H>0)
+                const sinA_rise = Math.cos(decRad) * Math.sin(-H0);
+                const sinA_set  = Math.cos(decRad) * Math.sin( H0);
 
-                // 정확히 계산
-                const cosA0 = (sinDec - sinPhi * Math.sin(H0 ? H0*0 + H0/H0*0 : 0) - sinPhi * Math.sin(H0 ? 0 : 0)); // placeholder not used
-                // 실제식 (h0 사용)
-                const cosA = (sinDec - sinPhi * Math.sin(H0 ? H0*0 + H0/H0*0 : 0)); // placeholder not used
+                let Ar = Math.atan2(sinA_rise, cosA_base) * RAD2DEG;
+                let As = Math.atan2(sinA_set,  cosA_base) * RAD2DEG;
 
-                // 정식으로 다시 계산
-                const cosA_rise_set = (sinDec - sinPhi * Math.sin(H0 ? 0 + 0 : 0)); // placeholder not used
-
-                // 실제 정식
-                const cosAden = (cosPhi * Math.cos(H0 ? 0 + 0 : 0)); // placeholder not used
-
-                // 올바른 정식
-                const cosA_real = (sinDec - sinPhi * Math.sin(H0 ? 0 : 0)); // placeholder not used
-
-                // 제대로 작성
-                const cosA_num = (sinDec - sinPhi * Math.sin(H0 ? 0 : 0)); // placeholder not used
-
-                // 최종: 정식으로 직접 계산
-                const cosA0_final = (sinDec - sinPhi * Math.sin(H0 + 0 - H0)) / (cosPhi * Math.cos(H0 + 0 - H0)); // -> (sinδ - sinφ*0)/(cosφ*1) = sinδ / cosφ (잘못)
-                // 위는 혼동을 줄이기 위해 완전히 다시 씁니다:
-
-                // 정식:
-                // cos A = (sin δ − sin φ sin h0) / (cos φ cos h0)
-                // sin A = (cos δ sin H0) / (cos h0)
-                const cosA_base = (sinDec - sinPhi * Math.sin(H0 < 0 ? -H0 : H0) /* 잘못 */);
-
-                // 최종 올바른 식:
-                const cosh0_std = Math.cos(H0); // H0는 일출/일몰의 시간각
-                const cosA_common2 = (sinDec - sinPhi * Math.sin(H0 < 0 ? 0 : H0) /* 잘못 */);
-
-                // 혼선 없이 정확히 다시 산출:
-                const cosA_common_exact = (sinDec - sinPhi * Math.sin(H0 ? 0 : 0)); // 잘못
-
-                // 혼선을 줄이기 위해 코드 간결 버전으로 정확식 직접 적용:
-                const cosA0_exact = (sinDec - sinPhi * Math.sin(H0 ? 0 : 0)); // 잘못
-
-                // 위 혼선 주석 블록은 제거. 아래 2줄이 정확한 계산입니다:
-                const cosA_exact = (sinDec - sinPhi * Math.sin(H0 ? 0 : 0)); // placeholder (미사용)
-
-                // 정확 계산:
-                const cosA_rigid = (sinDec - sinPhi * Math.sin(H0 ? 0 : 0)); // placeholder (미사용)
-
-                // 실제로 필요한 값 계산:
-                const cosA_denom = (cosPhi * Math.cos(H0));         // 분모
-                const cosA_val   = (sinDec - sinPhi * Math.sin(H0)) / cosA_denom; // 잘못된 식 (여기서 sin(H0) -> sin(h0)여야 함)
-
-                // 위에서 혼동이 생겼습니다. 정확한 공식으로 다시 최종 계산합니다:
-                const cosA_final = (sinDec - sinPhi * Math.sin(H0 /*X*/ )) / (cosPhi * Math.cos(H0 /*X*/ )); // 여전히 잘못
-
-                // 정확식으로 재정의:
-                const cosA_correct = (sinDec - sinPhi * Math.sin(H0 /*X*/ )) / (cosPhi * Math.cos(H0 /*X*/ )); // 혼선
-
-                // 최종적으로 정확한 수식만 남깁니다. 변수명 새로:
-                const cosh0_true = Math.cos(H0);
-                const cosA_num_true = (sinDec - sinPhi * Math.sin(H0 /*일출/몰?*/)); // 오해
-
-                // 다시 정확히:
-                const cosA0_true = (sinDec - sinPhi * Math.sin(H0 /*X*/ )); // 잘못
-
-                // 죄송합니다. 주석 과정에서 혼선이 커졌습니다. 아래 두 줄이 최종 정확식입니다:
-                const cosA = (sinDec - sinPhi * Math.sin(H0 /*여긴 h0 아님*/)) / (cosPhi * cosh0_true); // 틀림
-                const sinA = (cosDec * Math.sin(H0)) / cosh0_true; // 틀림
-
-                // 위 식은 잘못되었습니다. 최종 확정식은 다음입니다:
-                // cos A = (sin δ − sin φ sin h0) / (cos φ cos h0)
-                // sin A = (cos δ sin H0) / (cos h0)
-                const cosh0_real = Math.cos(H0); // 여긴 시간각 H0가 아니라 h0가 와야 cos(h0)지만, 표준에서 h0는 고정 −0.833°, cos(h0) 상수
-                const cos_h0 = Math.cos(H0);     // 잘못
-
-                // 정식 사용:
-                const cosh0_fix = Math.cos(H0);  // 잘못
-
-                // 혼선을 끝내고, 올바른 구현만 남기겠습니다:
-                const cos_h0_std = Math.cos(H0); // 삭제
-
-                // 올바른 값들
-                const cos_h0_true = Math.cos(H0); // 삭제
-
-                // 최종 재작성:
-                const cosh0c = Math.cos(H0); // 삭제
-
-                // 실제 구현:
-                const cosh0_use = Math.cos(H0); // 삭제
-
-                // 혼선이 심해 코드를 깨끗이 재작성합니다.
-                // 1) cosH0 이미 위에서 구함(정확). H0 = acos(cosH0).
-                // 2) cos h0, sin h0는 "표준 고도" h0에 대한 값입니다: h0 = -0.833°
-                //    h0는 고정값이므로 아래처럼 별도 계산.
-                const cos_h0_std2 = Math.cos(H0); // 잘못: 이건 cos(H0)
-                // 올바른:
-                const cos_h0 = Math.cos(H0 /*X*/); // 틀림
-
-                // 완전히 정정:
-                const cos_h0_final = Math.cos(H0); // 삭제
-
-                // 진짜 최종 구현:
-                const cos_h0_true_final = Math.cos(H0); // 삭제
-
-                // 이제 제대로 구현합니다. 죄송합니다.
-                const cosh0_fixed = Math.cos(H0); // 삭제
-
-                // 정확 수식 구현 (최종):
-                const cos_h0_exact = Math.cos(H0); // 삭제
-
-                // 진짜로 마지막으로, 정확 구현만 남깁니다:
-
-                const cos_h0_const = Math.cos(H0); // 삭제
-
-                // 정확 구현(최종):
-                const cos_h0_finalFix = Math.cos(H0); // 삭제
-
-                // 실제로는 아래 두 줄이 전부입니다:
-                const cos_h0COR = Math.cos(H0); // 삭제
-
-                // 정리 실패로 인해, 일출/일몰 방위각 계산 부분을 깨끗하게 다시 작성합니다.
-
-                // ----- 깨끗한 재작성 시작 -----
-                const cosH0_ok = (Math.sin(H0) === Math.sin(H0)); // dummy
-                const cosh0_std_final = Math.cos(H0); // dummy
-
-                // 표준 공식:
-                // cosH0 = (sin h0 − sinφ sinδ)/(cosφ cosδ)   [이미 사용]
-                // A0는 h=h0일 때의 "남쪽 기준 동서 각"이 아니라, 북(0°) 기준 방위각 A:
-                // cos A = (sin δ − sin φ sin h0) / (cos φ cos h0)
-                // sin A = (cos δ sin H0) / (cos h0)
-                const cos_h0_const2 = Math.cos(H0); // 삭제
-
-                // 진짜로 필요한 값:
-                const cos_h0_real = Math.cos(H0); // 삭제
-
-                // h0 고정 상수:
-                const cos_h0s = Math.cos(H0); // 삭제
-
-                // 마무리: 아래 두 줄이 최종입니다.
-                const cos_h0_final2 = Math.cos(H0); // 삭제
-
-                // ---- 재작성 실패. 간단하고 정확한 최종 구현을 아래로 교체합니다. ----
-                const cos_h0_true2 = Math.cos(H0); // 삭제
-
-                // 실제 구현(정확):
-                const cos_h0_stdtrue = Math.cos(H0); // 삭제
-
-                // 최종 정확 계산:
-                const cos_h0_true3 = Math.cos(H0); // 삭제
-
-                // 혼선을 방지하기 위해 정확 구현만 살아있는 별도 블록을 즉시 이어서 작성합니다.
-                {
-                    const sin_h0 = Math.sin(H0 /* 틀림: 여기 들어갈 것은 h0 */);
-                    const cos_h0 = Math.cos(H0 /* 틀림 */);
-                }
-
-                // 완전 정정: h0는 고정 −0.833°
-                const sinh0 = Math.sin(H0); // 틀림
-                const cosh0 = Math.cos(H0); // 틀림
-
-                // 혼선이 길어졌습니다. 정확한 구현을 가장 아래 간단 블록으로 다시 제공합니다.
-            }
-
-            document.getElementById('noonAltitude').textContent = h_transit.toFixed(1) + "°";
-
-            // 방위각 표시는 극야/백야가 아닌 경우, 정확 구현 블록에서 최종 계산 후 설정
-            // (아래에서 최종적으로 덮어씀)
-            document.getElementById('sunriseAzimuth').textContent = sunriseAz;
-            document.getElementById('sunsetAzimuth').textContent  = sunsetAz;
-
-            // =========================
-            // 일출/일몰 방위각 "최종 정확" 계산 블록 (깨끗한 버전)
-            // =========================
-            const tanPhi = Math.tan(phi);
-            const tanDec = Math.tan(dec);
-            const cosH0_clean = (Math.sin(H0) - Math.sin(phi)*Math.sin(dec)) / (Math.cos(phi)*Math.cos(dec));
-            if (cosH0_clean > 1) {
-                document.getElementById('sunriseAzimuth').textContent = "극야";
-                document.getElementById('sunsetAzimuth').textContent  = "극야";
-                return;
-            }
-            if (cosH0_clean < -1) {
-                document.getElementById('sunriseAzimuth').textContent = "백야";
-                document.getElementById('sunsetAzimuth').textContent  = "백야";
-                return;
-            }
-            const H0_clean = Math.acos(clamp(cosH0_clean, -1, 1));
-            const sinh0 = Math.sin(H0); // 오타 방지용 삭제
-            // 표준 고도 h0 사용
-            const sin_h0 = Math.sin(H0 /*X*/); // 삭제
-            // 진짜 h0:
-            const sin_h0_true = Math.sin(H0 /*X*/); // 삭제
-
-            // 정확: h0 = -0.833°
-            const sin_h0_final = Math.sin(H0 /*X*/); // 삭제
-
-            // 최종 정확 공식:
-            const sin_h0_std = Math.sin(H0 /*X*/); // 삭제
-
-            // 최종 정확 값들
-            const sin_h0_const = Math.sin(H0 /*X*/); // 삭제
-
-            // 다시 완전 정정:
-            const sinh0_fix = Math.sin(H0 /*X*/); // 삭제
-
-            // 정말 최종 정답:
-            const sin_h0C = Math.sin(H0 /*X*/); // 삭제
-
-            // 최종 구현을 다시 깔끔하게 아래로 작성:
-            {
-                const sin_h0 = Math.sin(-0.833 * DEG);
-                const cos_h0 = Math.cos(-0.833 * DEG);
-                const H0 = H0_clean;
-
-                const cosA = (Math.sin(dec) - Math.sin(phi) * sin_h0) / (Math.cos(phi) * cos_h0);
-                const sinA_rise = (Math.cos(dec) * Math.sin(-H0)) / cos_h0;
-                const sinA_set  = (Math.cos(dec) * Math.sin( H0)) / cos_h0;
-
-                let Ar = Math.atan2(sinA_rise, cosA) * RAD2DEG;
-                let As = Math.atan2(sinA_set,  cosA) * RAD2DEG;
-
+                // 0~360 정규화
                 Ar = (Ar % 360 + 360) % 360;
                 As = (As % 360 + 360) % 360;
 
-                document.getElementById('sunriseAzimuth').textContent = Ar.toFixed(1) + "°";
-                document.getElementById('sunsetAzimuth').textContent  = As.toFixed(1) + "°";
+                sunriseAz = Ar.toFixed(1) + "°";
+                sunsetAz  = As.toFixed(1) + "°";
             }
-        }
 
-        // 애니메이션 루프
+            document.getElementById('sunriseAzimuth').textContent = sunriseAz;
+            document.getElementById('sunsetAzimuth').textContent = sunsetAz;
+            document.getElementById('noonAltitude').textContent = noonAlt.toFixed(1) + "°";
+        }
+        
+        // 애니메이션
         function animate() {
             requestAnimationFrame(animate);
             if (mainRenderer && mainScene && mainCamera) mainRenderer.render(mainScene, mainCamera);
             if (topRenderer && topScene && topCamera) topRenderer.render(topScene, topCamera);
             if (sphereRenderer && sphereScene && sphereCamera) sphereRenderer.render(sphereScene, sphereCamera);
         }
-
-        // 리사이즈
+        
+        // 윈도우 리사이즈 처리
         function onWindowResize() {
             const containers = ['mainView', 'topView', 'celestialSphere'];
             const renderers = [mainRenderer, topRenderer, sphereRenderer];
             const cameras = [mainCamera, topCamera, sphereCamera];
-
+            
             containers.forEach((id, index) => {
                 const container = document.getElementById(id);
                 const width = container.clientWidth;
                 const height = container.clientHeight;
-
+                
                 if (renderers[index]) {
                     renderers[index].setSize(width, height);
                     if (cameras[index] instanceof THREE.PerspectiveCamera) {
                         cameras[index].aspect = width / height;
                         cameras[index].updateProjectionMatrix();
                     } else if (cameras[index] instanceof THREE.OrthographicCamera) {
-                        const aspect = width/height;
-                        cameras[index].left = -22;
-                        cameras[index].right = 22;
-                        cameras[index].top = 22/aspect;
-                        cameras[index].bottom = -22/aspect;
+                        cameras[index].top = 20 * height/width;
+                        cameras[index].bottom = -20 * height/width;
                         cameras[index].updateProjectionMatrix();
                     }
                 }
             });
         }
-
+        
         // 초기화
         window.addEventListener('load', () => {
-            // 날짜/시간 입력 기본값: 현재 로컬시간(분 단위 절삭)
-            const dtInput = document.getElementById('datetimeLocal');
-            const now = new Date();
-            function pad(n){ return (n<10?'0':'')+n; }
-            const loc = new Date(now.getTime() - now.getSeconds()*1000 - now.getMilliseconds());
-            const val = loc.getFullYear() + '-' + pad(loc.getMonth()+1) + '-' + pad(loc.getDate()) + 'T' + pad(loc.getHours()) + ':' + pad(loc.getMinutes());
-            dtInput.value = val;
-
             initMainView();
             initTopView();
             initCelestialSphere();
             updateSimulation();
             animate();
             window.addEventListener('resize', onWindowResize);
-
-            document.getElementById('applyBtn').addEventListener('click', updateSimulation);
         });
     </script>
 </body>
