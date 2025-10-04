@@ -16,13 +16,29 @@
       --accent: #85f489;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+
+    /* 레이아웃: 헤더 + 컨텐츠(flex) */
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh; /* 모바일 주소창 높이 변화 대응 */
+    }
+
     header {
       padding: 10px 14px;
       display: grid; gap: 8px; align-items: center;
       grid-template-columns: auto auto auto auto auto 1fr auto;
       background: #0d1020; border-bottom: 1px solid #222743;
       position: sticky; top: 0; z-index: 5;
+      /* flex 상단 고정 */
+      flex: 0 0 auto;
     }
     header label { font-size: 13px; opacity: 0.9; margin-right: 6px; }
     header input {
@@ -32,11 +48,15 @@
       padding: 8px 14px; background: #2a3a7a; color: #fff; border: none; border-radius: 8px; cursor: pointer;
     }
     header .help { font-size: 12px; opacity: 0.8; }
+
+    /* 컨텐츠 영역은 남은 공간을 모두 사용 */
     #grid {
       display: grid; gap: 10px; padding: 10px;
       grid-template-columns: 1fr 2fr 1fr;
       grid-template-areas: "top main sky";
-      height: calc(100% - 64px);
+      /* flex 아이템: 남은 공간 채우기, 내부 스크롤 가능 */
+      flex: 1 1 auto;
+      min-height: 0; /* 자식들이 높이를 가질 수 있도록 */
     }
     @media (max-width: 1100px) {
       #grid {
@@ -45,21 +65,27 @@
           "main"
           "top"
           "sky";
-        height: auto;
       }
     }
+
     .panel {
       background: var(--panel);
       border: 1px solid #222743; border-radius: 10px;
-      position: relative; min-height: 260px; overflow: hidden;
+      position: relative;
+      min-height: 260px; /* 세로가 너무 작아지지 않게 */
+      overflow: hidden;
     }
     .panel .title {
       position: absolute; left: 10px; top: 8px; font-size: 12px; opacity: 0.8; z-index: 2;
+      pointer-events: none;
     }
+    /* 캔버스는 패널 크기에 맞추고, 실제 렌더 크기는 JS에서 setSize */
     .panel canvas { display: block; width: 100%; height: 100%; }
+
     #topdown { grid-area: top; }
     #main { grid-area: main; min-height: 420px; }
     #localsky { grid-area: sky; }
+
     #localsky .info {
       position: absolute; left: 10px; bottom: 10px; font-size: 13px; background: rgba(6,8,18,0.6);
       border: 1px solid #2b3259; padding: 8px 10px; border-radius: 8px; backdrop-filter: blur(4px);
@@ -189,7 +215,6 @@
     const elSky = document.getElementById('localsky');
     const info = document.getElementById('info');
 
-    // 공통 헬퍼: 캔버스 오른쪽 클릭 메뉴 방지
     const preventContextMenu = el => el.addEventListener('contextmenu', e => e.preventDefault());
 
     // 메인 공전 씬
@@ -235,11 +260,10 @@
       const sun = new THREE.Mesh(sunGeo, sunMat);
       group.add(sun);
 
-      // 지구 궤도(황도면)
+      // 지구 궤도(황도면) - 기본이 XY 평면이므로 회전 제거
       const orbitGeo = new THREE.RingGeometry(scale-0.01, scale+0.01, 256);
       const orbitMat = new THREE.MeshBasicMaterial({ color: 0x2848a0, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
       const orbit = new THREE.Mesh(orbitGeo, orbitMat);
-      orbit.rotation.x = Math.PI/2; // XY 평면에 눕히기
       group.add(orbit);
 
       // 춘분점 방향(+X)
@@ -281,11 +305,16 @@
 
       targetScene.add(group);
 
-      return { group, earthGroup, earth, setEarthPos(lamRad) {
-        // 태양-지구 방향: r̂_sun = [cos λ, sin λ, 0], 지구는 반대
-        const R = scale;
-        earthGroup.position.set(-R*Math.cos(lamRad), -R*Math.sin(lamRad), 0);
-      }};
+      return {
+        group,
+        earthGroup,
+        earth,
+        setEarthPos(lamRad) {
+          // 태양-지구 방향: r̂_sun = [cos λ, sin λ, 0], 지구는 반대
+          const R = scale;
+          earthGroup.position.set(-R*Math.cos(lamRad), -R*Math.sin(lamRad), 0);
+        }
+      };
     }
 
     const main = buildOrbitScene(sceneMain, 10);
@@ -332,8 +361,8 @@
     function fitRenderer(el, renderer, camera, pixelRatio = window.devicePixelRatio || 1) {
       const w = el.clientWidth, h = el.clientHeight;
       renderer.setPixelRatio(Math.min(2, pixelRatio));
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
+      renderer.setSize(Math.max(1, w), Math.max(1, h), false);
+      camera.aspect = (w > 0 && h > 0) ? (w / h) : 1;
       camera.updateProjectionMatrix();
     }
     function onResize() {
@@ -342,7 +371,6 @@
       fitRenderer(elSky, renSky, camSky);
     }
     window.addEventListener('resize', onResize);
-    onResize();
 
     // ====== 상태/적용 ======
     const raInput = document.getElementById('raInput');
@@ -354,7 +382,12 @@
     raInput.value = '6h';
     latInput.value = '37.5';
     lonInput.value = '127.0';
-    apply();
+
+    // DOM이 레이아웃을 끝낸 다음 사이즈 계산
+    requestAnimationFrame(() => {
+      onResize();
+      apply();
+    });
 
     function apply() {
       const alpha = parseRA(raInput.value);
@@ -374,7 +407,6 @@
       top.setEarthPos(lam);
 
       // 로컬 천구: 적도선(δ=0), 황도선(β=0), 태양 일주궤(δ 고정, H스윕)
-      // LST는 도입하지 않으므로, 황도선은 α(λ로부터 계산)와 H=-α를 사용(LST=0 가정)
       const eqPts = sampleDiurnal(0, lat, 721).map(p => A_h_toVec(p.A, p.h, 1.0));
       setLineFromPoints(equatorLine, eqPts);
 
@@ -422,7 +454,7 @@
     function setLineFromPoints(line, pts) {
       const arr = new Float32Array(pts.length * 3);
       pts.forEach((p,i) => { arr[3*i]=p.x; arr[3*i+1]=p.y; arr[3*i+2]=p.z; });
-      line.geometry.dispose();
+      if (line.geometry) line.geometry.dispose();
       line.geometry = new THREE.BufferGeometry();
       line.geometry.setAttribute('position', new THREE.BufferAttribute(arr, 3));
       line.geometry.computeBoundingSphere();
@@ -439,7 +471,7 @@
         const c = h >= 0 ? new THREE.Color(0xffd166) : new THREE.Color(0x555555);
         col[3*i]=c.r; col[3*i+1]=c.g; col[3*i+2]=c.b;
       }
-      line.geometry.dispose();
+      if (line.geometry) line.geometry.dispose();
       line.geometry = new THREE.BufferGeometry();
       line.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       line.geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
