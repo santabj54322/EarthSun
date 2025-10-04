@@ -92,6 +92,15 @@
     }
     .note { padding: 6px 12px; font-size: 12px; opacity: 0.8; }
     a { color: #9ed0ff; text-decoration: none; }
+
+    /* 디버그 로그 박스 */
+    #debug {
+      position: fixed; left: 8px; bottom: 8px; z-index: 9999;
+      background: rgba(0,0,0,0.6); color: #9ee2a7;
+      font: 12px/1.4 monospace; padding: 8px 10px; border-radius: 6px;
+      max-width: 40vw; max-height: 30vh; overflow: auto; white-space: pre-wrap;
+      border: 1px solid #2b3259;
+    }
   </style>
 </head>
 <body>
@@ -122,6 +131,22 @@
   <script type="module">
     import * as THREE from "https://unpkg.com/three@0.159.0/build/three.module.js";
     import { OrbitControls } from "https://unpkg.com/three@0.159.0/examples/jsm/controls/OrbitControls.js";
+
+    // ====== 디버그 ======
+    const dbgEl = document.createElement('div');
+    dbgEl.id = 'debug';
+    dbgEl.textContent = 'boot…';
+    document.body.appendChild(dbgEl);
+    const log = (...args) => {
+      const s = args.map(x => {
+        try { return (typeof x === 'object') ? JSON.stringify(x) : String(x); }
+        catch { return String(x); }
+      }).join(' ');
+      dbgEl.textContent += '\n' + s;
+      dbgEl.scrollTop = dbgEl.scrollHeight;
+    };
+    window.addEventListener('error', e => log('ERROR:', e.message));
+    window.addEventListener('unhandledrejection', e => log('REJECT:', e.reason?.message || String(e.reason)));
 
     // ====== 수학/상수 ======
     const deg2rad = d => d * Math.PI / 180;
@@ -157,7 +182,8 @@
       const H0 = Math.acos(clamp(X, -1, 1));
       const cosA0 = clamp(Math.sin(dec) / Math.cos(lat), -1, 1);
       const A0 = Math.acos(cosA0);
-      return { H0, A_rise: 2*Math.PI - A0, A_set: A0 };
+      // 수정: 일출= A0, 일몰= 2π - A0
+      return { H0, A_rise: A0, A_set: 2*Math.PI - A0 };
     }
 
     const hMeridian = (lat, dec) => deg2rad(90) - Math.abs(lat - dec);
@@ -222,6 +248,7 @@
     sceneMain.background = new THREE.Color(0x0b0e1a);
     const camMain = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
     camMain.position.set(18, 10, 18);
+    camMain.lookAt(0,0,0); // 시선 보정
     const renMain = new THREE.WebGLRenderer({ antialias: true });
     elMain.appendChild(renMain.domElement); preventContextMenu(renMain.domElement);
     const controlsMain = new OrbitControls(camMain, renMain.domElement);
@@ -242,6 +269,7 @@
     sceneSky.background = new THREE.Color(0x0b0e1a);
     const camSky = new THREE.PerspectiveCamera(55, 1, 0.01, 100);
     camSky.position.set(0, 1.6, 2.6);
+    camSky.lookAt(0,0,0); // 시선 보정
     const renSky = new THREE.WebGLRenderer({ antialias: true });
     elSky.appendChild(renSky.domElement); preventContextMenu(renSky.domElement);
     const controlsSky = new OrbitControls(camSky, renSky.domElement);
@@ -260,7 +288,7 @@
       const sun = new THREE.Mesh(sunGeo, sunMat);
       group.add(sun);
 
-      // 지구 궤도(황도면) - 기본이 XY 평면이므로 회전 제거
+      // 지구 궤도(황도면)
       const orbitGeo = new THREE.RingGeometry(scale-0.01, scale+0.01, 256);
       const orbitMat = new THREE.MeshBasicMaterial({ color: 0x2848a0, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
       const orbit = new THREE.Mesh(orbitGeo, orbitMat);
@@ -357,9 +385,55 @@
     // 라이트(천구에도 약간)
     sceneSky.add(new THREE.AmbientLight(0xffffff, 0.6));
 
+    // ====== 연기 테스트(기본 그려지는지 확인용) ======
+    const smoke = { cube: null, t: 0 };
+    function addSmokeHelpers() {
+      try {
+        const axes1 = new THREE.AxesHelper(5);
+        const axes2 = new THREE.AxesHelper(5);
+        const axes3 = new THREE.AxesHelper(2);
+        sceneMain.add(axes1);
+        sceneTop.add(axes2);
+        sceneSky.add(axes3);
+
+        const mat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true });
+        const cube = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), mat);
+        cube.position.set(0,0,0);
+        sceneMain.add(cube);
+        smoke.cube = cube;
+
+        const ring = new THREE.LineLoop(
+          new THREE.BufferGeometry().setFromPoints(
+            [...Array(128)].map((_,i)=> {
+              const t = 2*Math.PI*i/128;
+              return new THREE.Vector3(Math.cos(t)*6, 0, Math.sin(t)*6);
+            })
+          ),
+          new THREE.LineBasicMaterial({ color: 0xffffff })
+        );
+        sceneTop.add(ring);
+
+        const skyTest = new THREE.LineLoop(
+          new THREE.BufferGeometry().setFromPoints(
+            [...Array(128)].map((_,i)=> {
+              const A = 2*Math.PI*i/128; // 지평선 테스트
+              return A_h_toVec(A, 0, 1.0);
+            })
+          ),
+          new THREE.LineBasicMaterial({ color: 0x44ffcc })
+        );
+        sceneSky.add(skyTest);
+
+        log('Smoke helpers added.');
+      } catch (e) {
+        log('Smoke helper error:', e.message);
+      }
+    }
+
     // ====== 크기/리사이즈 ======
     function fitRenderer(el, renderer, camera, pixelRatio = window.devicePixelRatio || 1) {
       const w = el.clientWidth, h = el.clientHeight;
+      log(`fitRenderer ${el.id}: ${w}x${h}`);
       renderer.setPixelRatio(Math.min(2, pixelRatio));
       renderer.setSize(Math.max(1, w), Math.max(1, h), false);
       camera.aspect = (w > 0 && h > 0) ? (w / h) : 1;
@@ -376,78 +450,89 @@
     const raInput = document.getElementById('raInput');
     const latInput = document.getElementById('latInput');
     const lonInput = document.getElementById('lonInput');
-    document.getElementById('applyBtn').addEventListener('click', apply);
+    const applyBtn = document.getElementById('applyBtn');
+    applyBtn.addEventListener('click', () => { log('Apply clicked'); apply(); });
 
     // 초기값
     raInput.value = '6h';
     latInput.value = '37.5';
     lonInput.value = '127.0';
 
-    // DOM이 레이아웃을 끝낸 다음 사이즈 계산
+    // DOM이 레이아웃을 끝낸 다음 사이즈 계산 + 스모크 + 적용
     requestAnimationFrame(() => {
       onResize();
-      apply();
+      addSmokeHelpers(); // 먼저 기본 도형이 보이는지 확인
+      apply();           // 이후 본 계산/그리기
+      log('Init done.');
     });
 
     function apply() {
-      const alpha = parseRA(raInput.value);
-      const lat = deg2rad(parseFloat(latInput.value));
-      const lon = deg2rad(parseFloat(lonInput.value)); // 현재 계산에는 사용하지 않음(시각/LST 미도입)
+      try {
+        const alpha = parseRA(raInput.value);
+        const lat = deg2rad(parseFloat(latInput.value));
+        const lon = deg2rad(parseFloat(lonInput.value)); // 현재 계산에는 사용하지 않음(시각/LST 미도입)
 
-      if (!isFinite(alpha) || !isFinite(lat)) {
-        info.textContent = '입력값을 확인하세요.';
-        return;
-      }
+        log('apply()', { alpha_rad: alpha, lat_rad: lat, lon_rad: lon });
 
-      // 태양 위치(황도 λ, 적위 δ)
-      const { lam, dec } = raToEcliptic(alpha);
+        if (!isFinite(alpha) || !isFinite(lat)) {
+          info.textContent = '입력값을 확인하세요.';
+          return;
+        }
 
-      // 공전/상공 화면 갱신
-      main.setEarthPos(lam);
-      top.setEarthPos(lam);
+        // 태양 위치(황도 λ, 적위 δ)
+        const { lam, dec } = raToEcliptic(alpha);
 
-      // 로컬 천구: 적도선(δ=0), 황도선(β=0), 태양 일주궤(δ 고정, H스윕)
-      const eqPts = sampleDiurnal(0, lat, 721).map(p => A_h_toVec(p.A, p.h, 1.0));
-      setLineFromPoints(equatorLine, eqPts);
+        // 공전/상공 화면 갱신
+        main.setEarthPos(lam);
+        top.setEarthPos(lam);
 
-      const eclPts = [];
-      const LST = 0; // 고정
-      for (let i=0;i<=720;i++) {
-        const lam_i = -Math.PI + (2*Math.PI*i)/720;
-        const dec_i = Math.asin(Math.sin(EPS) * Math.sin(lam_i));
-        const alpha_i = Math.atan2(Math.sin(lam_i) * Math.cos(EPS), Math.cos(lam_i));
-        const H_i = LST - alpha_i;
-        const {A,h} = eqToHor(dec_i, H_i, lat);
-        eclPts.push(A_h_toVec(A,h,1.0));
-      }
-      setLineFromPoints(eclipticLine, eclPts);
+        // 로컬 천구: 적도선(δ=0), 황도선(β=0), 태양 일주궤(δ 고정, H스윕)
+        const eqPts = sampleDiurnal(0, lat, 721).map(p => A_h_toVec(p.A, p.h, 1.0));
+        setLineFromPoints(equatorLine, eqPts);
 
-      const sunPts = sampleDiurnal(dec, lat, 721);
-      setDiurnalColoredLine(sunDiurnalLine, sunPts);
+        const eclPts = [];
+        const LST = 0; // 고정
+        for (let i=0;i<=720;i++) {
+          const lam_i = -Math.PI + (2*Math.PI*i)/720;
+          const dec_i = Math.asin(Math.sin(EPS) * Math.sin(lam_i));
+          const alpha_i = Math.atan2(Math.sin(lam_i) * Math.cos(EPS), Math.cos(lam_i));
+          const H_i = LST - alpha_i;
+          const {A,h} = eqToHor(dec_i, H_i, lat);
+          eclPts.push(A_h_toVec(A,h,1.0));
+        }
+        setLineFromPoints(eclipticLine, eclPts);
 
-      // 일출/일몰, 남중 고도
-      const RS = riseSetAz(lat, dec);
-      const hmax = hMeridian(lat, dec);
-      if (RS) {
-        const rPos = A_h_toVec(RS.A_rise, 0, 1.0);
-        const sPos = A_h_toVec(RS.A_set , 0, 1.0);
-        markRise.position.copy(rPos); markSet.position.copy(sPos);
-        markRise.visible = markSet.visible = true;
-        const AriseDeg = (rad2deg(RS.A_rise)).toFixed(1);
-        const AsetDeg  = (rad2deg(RS.A_set )).toFixed(1);
-        info.innerHTML = [
-          `태양 적위 δ = ${rad2deg(dec).toFixed(2)}°`,
-          `일출 방위각 = ${AriseDeg}°`,
-          `일몰 방위각 = ${AsetDeg}°`,
-          `남중 고도 = ${rad2deg(hmax).toFixed(2)}°`
-        ].join('<br/>');
-      } else {
-        markRise.visible = markSet.visible = false;
-        info.innerHTML = [
-          `태양 적위 δ = ${rad2deg(dec).toFixed(2)}°`,
-          `일출/일몰 없음(극지방 현상)`,
-          `남중 고도 = ${rad2deg(hmax).toFixed(2)}°`
-        ].join('<br/>');
+        const sunPts = sampleDiurnal(dec, lat, 721);
+        setDiurnalColoredLine(sunDiurnalLine, sunPts);
+
+        // 일출/일몰, 남중 고도
+        const RS = riseSetAz(lat, dec);
+        const hmax = hMeridian(lat, dec);
+        if (RS) {
+          const rPos = A_h_toVec(RS.A_rise, 0, 1.0);
+          const sPos = A_h_toVec(RS.A_set , 0, 1.0);
+          markRise.position.copy(rPos); markSet.position.copy(sPos);
+          markRise.visible = markSet.visible = true;
+          const AriseDeg = (rad2deg(RS.A_rise)).toFixed(1);
+          const AsetDeg  = (rad2deg(RS.A_set )).toFixed(1);
+          info.innerHTML = [
+            `태양 적위 δ = ${rad2deg(dec).toFixed(2)}°`,
+            `일출 방위각 = ${AriseDeg}°`,
+            `일몰 방위각 = ${AsetDeg}°`,
+            `남중 고도 = ${rad2deg(hmax).toFixed(2)}°`
+          ].join('<br/>');
+        } else {
+          markRise.visible = markSet.visible = false;
+          info.innerHTML = [
+            `태양 적위 δ = ${rad2deg(dec).toFixed(2)}°`,
+            `일출/일몰 없음(극지방 현상)`,
+            `남중 고도 = ${rad2deg(hmax).toFixed(2)}°`
+          ].join('<br/>');
+        }
+
+        log('apply() done');
+      } catch (e) {
+        log('apply() error:', e.message);
       }
     }
 
@@ -464,11 +549,13 @@
       const n = AhPts.length;
       const pos = new Float32Array(n*3);
       const col = new Float32Array(n*3);
+      const cDay = new THREE.Color(0xffd166);
+      const cNight = new THREE.Color(0x555555);
       for (let i=0;i<n;i++) {
         const {A,h} = AhPts[i];
         const v = A_h_toVec(A,h,1.0);
         pos[3*i]=v.x; pos[3*i+1]=v.y; pos[3*i+2]=v.z;
-        const c = h >= 0 ? new THREE.Color(0xffd166) : new THREE.Color(0x555555);
+        const c = h >= 0 ? cDay : cNight;
         col[3*i]=c.r; col[3*i+1]=c.g; col[3*i+2]=c.b;
       }
       if (line.geometry) line.geometry.dispose();
@@ -483,6 +570,11 @@
     // ====== 렌더 루프 ======
     function animate() {
       requestAnimationFrame(animate);
+      // 스모크 테스트 큐브 회전
+      if (smoke.cube) {
+        smoke.t += 0.01;
+        smoke.cube.rotation.y = smoke.t;
+      }
       controlsMain.update();
       controlsSky.update();
       renMain.render(sceneMain, camMain);
@@ -495,5 +587,6 @@
   <div class="note">
     참고: 원형 공전, 굴절/태양 시지름/시차/지구 타원체 등은 무시. 경도는 현재 시각(LST)을 도입하지 않아 계산에 사용하지 않습니다(향후 확장 지점).
   </div>
+
 </body>
 </html>
